@@ -7,14 +7,15 @@ class DatabaseHelper {
   static const _databaseVersion = 1;
 
   static const table = 'my_table';
-
   static const columnId = '_id';
   static const columnName = 'name';
   static const columnAge = 'age';
 
   late Database _db;
 
-  // this opens the database (and creates it if it doesn't exist)
+  static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
+  DatabaseHelper._privateConstructor();
+
   Future<void> init() async {
     final documentsDirectory = await getApplicationDocumentsDirectory();
     final path = join(documentsDirectory.path, _databaseName);
@@ -25,34 +26,29 @@ class DatabaseHelper {
     );
   }
 
-  // SQL code to create the database table
   Future _onCreate(Database db, int version) async {
     await db.execute('''
-          CREATE TABLE $table (
-            $columnId INTEGER PRIMARY KEY,
-            $columnName TEXT NOT NULL,
-            $columnAge INTEGER NOT NULL
-          )
-          ''');
+      CREATE TABLE $table (
+        $columnId INTEGER PRIMARY KEY,
+        $columnName TEXT NOT NULL,
+        $columnAge INTEGER NOT NULL
+      )
+    ''');
   }
 
-  // Inserts a row in the database
   Future<int> insert(Map<String, dynamic> row) async {
     return await _db.insert(table, row);
   }
 
-  // Returns all rows as a list of maps
   Future<List<Map<String, dynamic>>> queryAllRows() async {
     return await _db.query(table);
   }
 
-  // Returns the number of rows
   Future<int> queryRowCount() async {
     final results = await _db.rawQuery('SELECT COUNT(*) FROM $table');
     return Sqflite.firstIntValue(results) ?? 0;
   }
 
-  // Updates a row
   Future<int> update(Map<String, dynamic> row) async {
     int id = row[columnId];
     return await _db.update(
@@ -63,12 +59,25 @@ class DatabaseHelper {
     );
   }
 
-  // Deletes a row
   Future<int> delete(int id) async {
     return await _db.delete(
       table,
       where: '$columnId = ?',
       whereArgs: [id],
     );
+  }
+
+  Future<Map<String, dynamic>?> queryRowById(int id) async {
+    final results = await _db.query(
+      table,
+      where: '$columnId = ?',
+      whereArgs: [id],
+    );
+    if (results.isNotEmpty) return results.first;
+    return null;
+  }
+
+  Future<int> deleteAll() async {
+    return await _db.delete(table);
   }
 }
